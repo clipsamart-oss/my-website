@@ -1,0 +1,1250 @@
+<!DOCTYPE html>
+<html lang="en" >
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Full iOS 16 Liquid Glass Tablet UI with Multitasking & Animations</title>
+
+  <!-- Chart.js CDN for charts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    /* Reset & base */
+    * {
+      box-sizing: border-box;
+      user-select: none;
+    }
+    body, html {
+      margin: 0; padding: 0;
+      height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+        Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      background: linear-gradient(135deg, #4b6cb7 0%, #182848 100%);
+      color: white;
+      overflow: hidden;
+    }
+
+    /* Liquid glass shimmer animation */
+    @keyframes glassShimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 12px rgba(255 255 255 / 0.3); }
+      50% { box-shadow: 0 0 20px rgba(255 255 255 / 0.5); }
+    }
+
+    /* Sidebar */
+    .sidebar {
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+      width: 280px;
+      background: rgba(255 255 255 / 0.12);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border-right: 1px solid rgba(255 255 255 / 0.25);
+      box-shadow:
+        3px 0 12px rgba(0 0 0 / 0.15);
+      display: flex;
+      flex-direction: column;
+      padding: 24px 0;
+      transition: transform 0.3s ease;
+      z-index: 10;
+    }
+    .sidebar.collapsed {
+      transform: translateX(-100%);
+      box-shadow: none;
+      border: none;
+    }
+    .sidebar h2 {
+      margin: 0 0 24px 24px;
+      font-weight: 700;
+      font-size: 1.8rem;
+      letter-spacing: 0.04em;
+      user-select: text;
+    }
+    .sidebar nav a {
+      display: flex;
+      align-items: center;
+      padding: 14px 24px;
+      color: rgba(255 255 255 / 0.8);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 1.1rem;
+      transition: background 0.3s ease, color 0.3s ease;
+      border-left: 4px solid transparent;
+      user-select: text;
+    }
+    .sidebar nav a:hover,
+    .sidebar nav a.active {
+      background: rgba(255 255 255 / 0.25);
+      color: white;
+      border-left-color: #a0c1ff;
+    }
+
+    /* Main wrapper */
+    .main-wrapper {
+      margin-left: 280px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      transition: margin-left 0.3s ease;
+      overflow: hidden;
+      position: relative;
+    }
+    .main-wrapper.expanded {
+      margin-left: 0;
+    }
+
+    /* Header */
+    header {
+      position: sticky;
+      top: 0;
+      background: rgba(255 255 255 / 0.15);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255 255 255 / 0.3);
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 2px 8px rgba(0 0 0 / 0.12);
+      z-index: 100;
+      user-select: none;
+    }
+    .hamburger-btn {
+      font-size: 1.8rem;
+      cursor: pointer;
+      color: white;
+      user-select: none;
+      border: none;
+      background: transparent;
+      padding: 8px 12px;
+      border-radius: 10px;
+      transition: background 0.2s ease;
+    }
+    .hamburger-btn:hover {
+      background: rgba(255 255 255 / 0.3);
+    }
+    .header-search {
+      flex: 1;
+      margin: 0 24px;
+      position: relative;
+    }
+    .header-search input {
+      width: 100%;
+      border: none;
+      border-radius: 14px;
+      padding: 10px 48px 10px 16px;
+      font-size: 1rem;
+      background: rgba(255 255 255 / 0.2);
+      color: white;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      outline: none;
+      transition: background 0.3s ease;
+      user-select: text;
+    }
+    .header-search input::placeholder {
+      color: rgba(255 255 255 / 0.6);
+      font-style: italic;
+    }
+    .header-search input:focus {
+      background: rgba(255 255 255 / 0.35);
+    }
+    .header-search svg {
+      position: absolute;
+      right: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 20px;
+      height: 20px;
+      fill: rgba(255 255 255 / 0.7);
+      pointer-events: none;
+      user-select: none;
+    }
+    /* Profile Avatar */
+    .profile {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: url('https://i.pravatar.cc/42') no-repeat center / cover;
+      border: 2px solid rgba(255 255 255 / 0.4);
+      box-shadow: 0 0 8px rgba(255 255 255 / 0.3);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    /* Main content area */
+    main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 32px 40px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 32px;
+      user-select: text;
+    }
+
+    /* Glass Card base */
+    .liquid-glass-card {
+      background: linear-gradient(270deg, rgba(255 255 255 / 0.15), rgba(255 255 255 / 0.05));
+      border-radius: 24px;
+      box-shadow:
+        0 8px 32px 0 rgba(31, 38, 135, 0.37),
+        0 0 0 1px rgba(255, 255, 255, 0.18);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255 255 255 / 0.3);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      color: white;
+      transition:
+        transform 0.3s ease,
+        box-shadow 0.3s ease;
+      cursor: default;
+      min-height: 260px;
+      position: relative;
+      animation: pulseGlow 6s ease-in-out infinite;
+      background-size: 400% 100%;
+      animation-name: glassShimmer, pulseGlow;
+      animation-duration: 8s, 6s;
+      animation-iteration-count: infinite, infinite;
+      animation-timing-function: linear, ease-in-out;
+    }
+    .liquid-glass-card:hover {
+      transform: translateY(-6px);
+      box-shadow:
+        0 16px 48px 0 rgba(31, 38, 135, 0.6),
+        0 0 0 1.5px rgba(255, 255, 255, 0.35);
+      animation-play-state: paused;
+    }
+    .liquid-glass-card h2 {
+      margin-top: 0;
+      margin-bottom: 12px;
+      font-weight: 700;
+      font-size: 1.6rem;
+      letter-spacing: 0.02em;
+      user-select: text;
+    }
+    .liquid-glass-card p {
+      flex-grow: 1;
+      font-weight: 400;
+      font-size: 1.1rem;
+      line-height: 1.4;
+      color: rgba(255 255 255 / 0.85);
+      margin-bottom: 20px;
+      user-select: text;
+    }
+
+    /* Buttons */
+    .btn-glass {
+      background: rgba(255 255 255 / 0.25);
+      border: none;
+      border-radius: 16px;
+      padding: 14px 32px;
+      color: white;
+      font-weight: 600;
+      font-size: 1.1rem;
+      cursor: pointer;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      box-shadow: 0 0 12px rgba(255 255 255 / 0.4);
+      transition: background 0.3s ease, transform 0.2s ease;
+      user-select: none;
+      align-self: flex-start;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .btn-glass:hover {
+      background: rgba(255 255 255 / 0.45);
+      transform: scale(1.05);
+    }
+    .btn-glass:active {
+      transform: scale(0.95);
+      background: rgba(255 255 255 / 0.6);
+    }
+
+    /* Inputs */
+    .input-glass {
+      background: rgba(255 255 255 / 0.2);
+      border: 1px solid rgba(255 255 255 / 0.3);
+      border-radius: 14px;
+      padding: 12px 20px;
+      font-size: 1rem;
+      color: white;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      transition: border-color 0.3s ease;
+      width: 100%;
+      outline-offset: 2px;
+      user-select: text;
+    }
+    .input-glass::placeholder {
+      color: rgba(255 255 255 / 0.6);
+      font-style: italic;
+    }
+    .input-glass:focus {
+      border-color: #a0c1ff;
+      outline: none;
+      background: rgba(255 255 255 / 0.3);
+    }
+
+    /* Toggle Switch */
+    .toggle-switch {
+      display: inline-block;
+      position: relative;
+      width: 52px;
+      height: 28px;
+      user-select: none;
+    }
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+      position: absolute;
+    }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(255 255 255 / 0.3);
+      border-radius: 34px;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255 255 255 / 0.3);
+      transition: background 0.4s;
+      box-shadow: 0 0 12px rgba(255 255 255 / 0.3);
+    }
+    .slider::before {
+      position: absolute;
+      content: "";
+      height: 22px;
+      width: 22px;
+      left: 3px;
+      bottom: 3px;
+      background: white;
+      border-radius: 50%;
+      transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow:
+        0 1px 3px rgba(0,0,0,0.4);
+    }
+    input:checked + .slider {
+      background: #a0c1ff;
+      box-shadow: 0 0 20px #a0c1ff;
+    }
+    input:checked + .slider::before {
+      transform: translateX(24px);
+      background: white;
+      box-shadow:
+        0 0 8px #5377ff;
+    }
+
+    /* Modal */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0 0 0 / 0.6);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      user-select: none;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+    .modal-backdrop.active {
+      display: flex;
+      animation: fadeIn 0.3s ease forwards;
+    }
+    .modal-content {
+      background: rgba(255 255 255 / 0.15);
+      border-radius: 28px;
+      padding: 32px 40px;
+      max-width: 480px;
+      width: 90%;
+      box-shadow:
+        0 16px 48px 0 rgba(31, 38, 135, 0.7),
+        0 0 0 1.5px rgba(255, 255, 255, 0.35);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      color: white;
+      text-align: center;
+      position: relative;
+      user-select: text;
+    }
+    .modal-content h3 {
+      margin-top: 0;
+      font-weight: 700;
+      font-size: 2rem;
+      margin-bottom: 16px;
+    }
+    .modal-content p {
+      font-size: 1.2rem;
+      line-height: 1.5;
+      color: rgba(255 255 255 / 0.9);
+      margin-bottom: 32px;
+    }
+    .modal-close {
+      position: absolute;
+      top: 16px;
+      right: 20px;
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: rgba(255 255 255 / 0.6);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      user-select: none;
+      transition: color 0.3s ease;
+    }
+    .modal-close:hover {
+      color: white;
+    }
+    @keyframes fadeIn {
+      from {opacity: 0;}
+      to {opacity: 1;}
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 24px;
+      user-select: none;
+    }
+    .tab {
+      padding: 10px 24px;
+      border-radius: 16px;
+      cursor: pointer;
+      background: rgba(255 255 255 / 0.2);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border: 1px solid rgba(255 255 255 / 0.3);
+      box-shadow: 0 0 8px rgba(255 255 255 / 0.3);
+      font-weight: 600;
+      transition: background 0.3s ease;
+      flex-shrink: 0;
+      color: rgba(255 255 255 / 0.7);
+    }
+    .tab.active {
+      background: #a0c1ff;
+      box-shadow: 0 0 12px #a0c1ff;
+      color: white;
+      user-select: text;
+    }
+    /* Tab content */
+    .tab-content {
+      font-size: 1.1rem;
+      line-height: 1.4;
+      color: rgba(255 255 255 / 0.9);
+      user-select: text;
+    }
+
+    /* Bottom Toolbar */
+    footer {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: rgba(255 255 255 / 0.12);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-top: 1px solid rgba(255 255 255 / 0.3);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 32px;
+      padding: 12px 0;
+      box-shadow: 0 -2px 12px rgba(0 0 0 / 0.15);
+      user-select: none;
+      z-index: 999;
+    }
+    .toolbar-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 12px;
+      background: rgba(255 255 255 / 0.3);
+      box-shadow: 0 0 10px rgba(255 255 255 / 0.3);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      transition: background 0.3s ease, box-shadow 0.3s ease;
+      color: white;
+      font-size: 20px;
+      user-select: none;
+    }
+    .toolbar-icon:hover {
+      background: rgba(255 255 255 / 0.6);
+      box-shadow: 0 0 16px rgba(255 255 255 / 0.6);
+      color: #3d59ff;
+    }
+    .toolbar-icon:active {
+      transform: scale(0.9);
+    }
+
+    /* Slider component */
+    .slider-container {
+      margin: 16px 0;
+      user-select: none;
+    }
+    .slider-label {
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: rgba(255 255 255 / 0.9);
+    }
+    input[type="range"] {
+      width: 100%;
+      -webkit-appearance: none;
+      background: rgba(255 255 255 / 0.2);
+      height: 12px;
+      border-radius: 10px;
+      outline: none;
+      cursor: pointer;
+      box-shadow: inset 0 0 5px rgba(0 0 0 / 0.2);
+      transition: background 0.3s ease;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 26px;
+      height: 26px;
+      background: #a0c1ff;
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 0 12px #a0c1ff;
+      transition: background 0.3s ease;
+      border: 1px solid white;
+      margin-top: -7px;
+    }
+    input[type="range"]:hover::-webkit-slider-thumb {
+      background: #5377ff;
+      box-shadow: 0 0 20px #5377ff;
+    }
+    input[type="range"]:active::-webkit-slider-thumb {
+      background: #2950ff;
+      box-shadow: 0 0 28px #2950ff;
+    }
+    /* Firefox */
+    input[type="range"]::-moz-range-thumb {
+      width: 26px;
+      height: 26px;
+      background: #a0c1ff;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 1px solid white;
+      box-shadow: 0 0 12px #a0c1ff;
+      transition: background 0.3s ease;
+    }
+    input[type="range"]:hover::-moz-range-thumb {
+      background: #5377ff;
+      box-shadow: 0 0 20px #5377ff;
+    }
+    input[type="range"]:active::-moz-range-thumb {
+      background: #2950ff;
+      box-shadow: 0 0 28px #2950ff;
+    }
+
+    /* Notifications Panel */
+    #notificationsPanel {
+      position: fixed;
+      top: 64px;
+      right: 20px;
+      width: 320px;
+      max-height: 480px;
+      background: rgba(255 255 255 / 0.15);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border-radius: 28px;
+      box-shadow:
+        0 16px 48px 0 rgba(31, 38, 135, 0.7),
+        0 0 0 1.5px rgba(255, 255, 255, 0.35);
+      overflow-y: auto;
+      padding: 16px 24px;
+      z-index: 998;
+      color: white;
+      user-select: none;
+      display: none;
+      flex-direction: column;
+    }
+    #notificationsPanel.active {
+      display: flex;
+    }
+    #notificationsPanel h3 {
+      margin: 0 0 16px 0;
+      font-weight: 700;
+      font-size: 1.5rem;
+      user-select: text;
+    }
+    .notification {
+      background: rgba(255 255 255 / 0.2);
+      padding: 14px 18px;
+      border-radius: 16px;
+      margin-bottom: 12px;
+      font-weight: 500;
+      font-size: 1rem;
+      box-shadow: 0 0 12px rgba(255 255 255 / 0.25);
+      transition: background 0.3s ease;
+      user-select: text;
+    }
+    .notification:hover {
+      background: rgba(255 255 255 / 0.35);
+    }
+
+    /* Toast */
+    #toast {
+      position: fixed;
+      bottom: 72px;
+      right: 24px;
+      background: rgba(255 255 255 / 0.2);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      padding: 14px 28px;
+      border-radius: 28px;
+      box-shadow:
+        0 8px 24px rgba(31, 38, 135, 0.5),
+        0 0 0 1px rgba(255, 255, 255, 0.3);
+      color: white;
+      font-weight: 600;
+      font-size: 1.1rem;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(20px);
+      transition: opacity 0.3s ease, transform 0.3s ease;
+      user-select: none;
+      z-index: 10000;
+    }
+    #toast.show {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0);
+    }
+
+    /* Multitasking Windows */
+    .window {
+      position: absolute;
+      background: rgba(255 255 255 / 0.12);
+      backdrop-filter: blur(28px);
+      -webkit-backdrop-filter: blur(28px);
+      border-radius: 28px;
+      box-shadow:
+        0 16px 48px rgba(31, 38, 135, 0.5),
+        0 0 0 1.5px rgba(255, 255, 255, 0.35);
+      min-width: 320px;
+      min-height: 280px;
+      max-width: 90vw;
+      max-height: 80vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      user-select: text;
+      cursor: grab;
+      transition: box-shadow 0.3s ease;
+      z-index: 100;
+    }
+    .window:active {
+      cursor: grabbing;
+      box-shadow:
+        0 24px 64px rgba(31, 38, 135, 0.9),
+        0 0 0 2px rgba(255, 255, 255, 0.6);
+      z-index: 101;
+    }
+    .window-header {
+      padding: 16px 24px;
+      background: rgba(255 255 255 / 0.2);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      cursor: grab;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      user-select: none;
+      border-bottom: 1px solid rgba(255 255 255 / 0.25);
+    }
+    .window-header h3 {
+      margin: 0;
+      font-weight: 700;
+      font-size: 1.4rem;
+      color: white;
+    }
+    .window-controls {
+      display: flex;
+      gap: 16px;
+    }
+    .window-btn {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #f06262; /* close default red */
+      cursor: pointer;
+      transition: background 0.3s ease;
+      box-shadow: 0 0 8px rgba(255 255 255 / 0.3);
+    }
+    .window-btn.minimize {
+      background: #f9d86b;
+    }
+    .window-btn.maximize {
+      background: #75f062;
+    }
+    .window-btn:hover {
+      filter: brightness(1.3);
+    }
+    .window-content {
+      flex: 1;
+      overflow: auto;
+      padding: 20px 24px;
+      color: white;
+      user-select: text;
+    }
+
+    /* Chart container */
+    .chart-container {
+      width: 100%;
+      height: 240px;
+      user-select: none;
+    }
+
+    /* Responsive for tablet */
+    @media (max-width: 900px) {
+      .sidebar {
+        transform: translateX(-100%);
+      }
+      .main-wrapper {
+        margin-left: 0;
+      }
+      header {
+        padding: 12px 16px;
+      }
+      main {
+        padding: 24px 20px;
+        grid-template-columns: 1fr;
+        gap: 24px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar" aria-label="Primary navigation">
+    <h2>iOS Tablet UI</h2>
+    <nav role="navigation" aria-label="Main menu">
+      <a href="#" class="active" tabindex="0" role="link">Dashboard</a>
+      <a href="#" tabindex="-1" role="link">Analytics</a>
+      <a href="#" tabindex="-1" role="link">Messages</a>
+      <a href="#" tabindex="-1" role="link">Settings</a>
+      <a href="#" tabindex="-1" role="link">Help</a>
+    </nav>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <div class="main-wrapper" id="mainWrapper" role="main" aria-live="polite">
+
+    <!-- HEADER -->
+    <header>
+      <button aria-label="Toggle sidebar navigation" class="hamburger-btn" id="toggleSidebarBtn" aria-expanded="true">&#9776;</button>
+      <div class="header-search" role="search">
+        <input
+          type="search"
+          placeholder="Search..."
+          aria-label="Search site content"
+          id="headerSearch"
+          autocomplete="off"
+          spellcheck="false"
+          />
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="M15.5 14h-.79l-.28-.27a6.471 6.471 0 001.48-5.34C15.3 5.49 12.81 3 9.75 3S4.2 5.49 4.2 8.39c0 2.9 2.49 5.39 5.55 5.39 1.61 0 3.05-.79 3.97-2.03l.27.28v.79l4.25 4.25 1.27-1.27-4.25-4.25zm-5.75 0c-1.91 0-3.5-1.52-3.5-3.39 0-1.88 1.59-3.39 3.5-3.39s3.5 1.51 3.5 3.39c0 1.87-1.59 3.39-3.5 3.39z"></path>
+        </svg>
+      </div>
+      <div class="profile" tabindex="0" role="img" aria-label="User profile picture"></div>
+    </header>
+
+    <main>
+
+      <!-- Dashboard Card with Tabs -->
+      <section class="liquid-glass-card" aria-label="Dashboard overview" id="dashboardCard">
+        <h2>Dashboard</h2>
+        <div class="tabs" role="tablist" aria-label="Dashboard sections">
+          <div
+            class="tab active"
+            role="tab"
+            tabindex="0"
+            aria-selected="true"
+            aria-controls="tabContent1"
+            id="tab1"
+            >Overview</div
+          >
+          <div
+            class="tab"
+            role="tab"
+            tabindex="-1"
+            aria-selected="false"
+            aria-controls="tabContent2"
+            id="tab2"
+            >Stats</div
+          >
+          <div
+            class="tab"
+            role="tab"
+            tabindex="-1"
+            aria-selected="false"
+            aria-controls="tabContent3"
+            id="tab3"
+            >Activity</div
+          >
+        </div>
+        <div
+          id="tabContent1"
+          class="tab-content"
+          role="tabpanel"
+          aria-labelledby="tab1"
+        >
+          <p>Welcome to your liquid glass dashboard! This is the overview section with some intro text and summaries.</p>
+        </div>
+        <div
+          id="tabContent2"
+          class="tab-content"
+          role="tabpanel"
+          aria-labelledby="tab2"
+          hidden
+        >
+          <canvas id="statsChart" class="chart-container" aria-label="Usage statistics chart" role="img"></canvas>
+        </div>
+        <div
+          id="tabContent3"
+          class="tab-content"
+          role="tabpanel"
+          aria-labelledby="tab3"
+          hidden
+        >
+          <ul id="activityLog" aria-live="polite" style="list-style:none; padding-left:0;">
+            <!-- dynamic activities -->
+          </ul>
+        </div>
+      </section>
+
+      <!-- Toggle Switch Card -->
+      <section class="liquid-glass-card" aria-label="Toggle features" id="toggleFeaturesCard">
+        <h2>Toggle Features</h2>
+        <label
+          class="toggle-switch"
+          for="featureToggle"
+          aria-checked="false"
+          role="switch"
+          tabindex="0"
+          id="featureToggleLabel"
+          >
+          <input type="checkbox" id="featureToggle" aria-labelledby="featureToggleLabel" />
+          <span class="slider"></span>
+        </label>
+        <p style="margin-top: 16px;">Enable advanced glass effects</p>
+      </section>
+
+      <!-- Input Form Card -->
+      <section class="liquid-glass-card" aria-label="Input form" id="inputFormCard">
+        <h2>Input Form</h2>
+        <input
+          type="text"
+          class="input-glass"
+          placeholder="Name"
+          aria-label="Name input"
+          id="inputName"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <br /><br />
+        <input
+          type="email"
+          class="input-glass"
+          placeholder="Email"
+          aria-label="Email input"
+          id="inputEmail"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <br /><br />
+        <input
+          type="password"
+          class="input-glass"
+          placeholder="Password"
+          aria-label="Password input"
+          id="inputPassword"
+        />
+        <br /><br />
+        <button class="btn-glass" type="submit" id="submitFormBtn">Submit</button>
+      </section>
+
+      <!-- Slider Control Card -->
+      <section class="liquid-glass-card" aria-label="Brightness control" id="sliderCard">
+        <h2>Adjust Brightness</h2>
+        <div class="slider-container">
+          <label for="brightnessRange" class="slider-label">Brightness Level</label>
+          <input type="range" id="brightnessRange" min="10" max="100" step="1" value="75" aria-valuemin="10" aria-valuemax="100" aria-valuenow="75" role="slider" />
+        </div>
+      </section>
+
+      <!-- Notifications Toggle Card -->
+      <section class="liquid-glass-card" aria-label="Notifications panel control" id="notificationsCard">
+        <h2>Notifications Panel</h2>
+        <button class="btn-glass" id="toggleNotificationsBtn">Toggle Notifications</button>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Notifications Panel -->
+  <section id="notificationsPanel" aria-live="polite" aria-atomic="true" aria-label="Notifications panel">
+    <h3>Notifications</h3>
+    <!-- Notifications get inserted here -->
+  </section>
+
+  <!-- Toast for feedback -->
+  <div id="toast" role="alert" aria-live="assertive" aria-atomic="true" aria-relevant="additions"></div>
+
+  <!-- Multitasking Windows Container -->
+  <div id="windowsContainer" aria-label="Multitasking windows container" aria-live="polite" style="position: fixed; inset: 0; pointer-events: none; z-index: 9999;"></div>
+
+  <script>
+    // Sidebar toggle
+    const sidebar = document.getElementById('sidebar');
+    const mainWrapper = document.getElementById('mainWrapper');
+    const toggleSidebarBtn = document.getElementById('toggleSidebarBtn');
+    toggleSidebarBtn.setAttribute('aria-expanded', 'true');
+
+    toggleSidebarBtn.addEventListener('click', () => {
+      const collapsed = sidebar.classList.toggle('collapsed');
+      mainWrapper.classList.toggle('expanded', collapsed);
+      toggleSidebarBtn.setAttribute('aria-expanded', !collapsed);
+    });
+
+    // Tabs logic with keyboard navigation
+    const tabs = document.querySelectorAll('.tab');
+    const tabContents = document.querySelectorAll('.tab-content');
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => activateTab(tab.id));
+      tab.addEventListener('keydown', e => {
+        let newIndex;
+        const index = Array.from(tabs).indexOf(tab);
+        if (e.key === 'ArrowRight') {
+          newIndex = (index + 1) % tabs.length;
+          activateTab(tabs[newIndex].id);
+          tabs[newIndex].focus();
+          e.preventDefault();
+        }
+        if (e.key === 'ArrowLeft') {
+          newIndex = (index - 1 + tabs.length) % tabs.length;
+          activateTab(tabs[newIndex].id);
+          tabs[newIndex].focus();
+          e.preventDefault();
+        }
+      });
+    });
+
+    function activateTab(tabId) {
+      tabs.forEach(t => {
+        const selected = t.id === tabId;
+        t.classList.toggle('active', selected);
+        t.setAttribute('aria-selected', selected);
+        t.setAttribute('tabindex', selected ? '0' : '-1');
+      });
+      tabContents.forEach(tc => {
+        tc.hidden = tc.id !== tabId.replace('tab', 'tabContent');
+      });
+    }
+
+    // Initialize charts with dummy data (stats tab)
+    const ctx = document.getElementById('statsChart').getContext('2d');
+    const statsChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+        datasets: [{
+          label: 'Active Users',
+          data: [120, 135, 150, 170, 190, 230, 210],
+          backgroundColor: 'rgba(160, 193, 255, 0.3)',
+          borderColor: 'rgba(160, 193, 255, 1)',
+          borderWidth: 3,
+          tension: 0.4,
+          fill: true,
+          pointRadius: 5,
+          pointHoverRadius: 7,
+          pointBackgroundColor: 'white',
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: { color: 'rgba(255 255 255 / 0.7)' },
+            grid: { color: 'rgba(255 255 255 / 0.1)' }
+          },
+          x: {
+            ticks: { color: 'rgba(255 255 255 / 0.7)' },
+            grid: { color: 'rgba(255 255 255 / 0.1)' }
+          }
+        },
+        plugins: {
+          legend: {
+            labels: {
+              color: 'rgba(255 255 255 / 0.9)',
+              font: { weight: '600' }
+            }
+          }
+        }
+      }
+    });
+
+    // Activity Log - dynamically fill
+    const activityLog = document.getElementById('activityLog');
+    const activities = [
+      'User logged in',
+      'File upload completed',
+      'New message received',
+      'Settings updated',
+      'Backup successful',
+      'New user registered',
+      'Password changed',
+      'Notification sent',
+    ];
+    activities.forEach(act => {
+      const li = document.createElement('li');
+      li.textContent = `${new Date().toLocaleTimeString()}: ${act}`;
+      activityLog.appendChild(li);
+    });
+
+    // Toggle feature switch
+    const featureToggle = document.getElementById('featureToggle');
+    featureToggle.addEventListener('change', (e) => {
+      if(e.target.checked) {
+        document.body.style.setProperty('--glass-opacity', '0.4');
+        showToast('Advanced glass effects enabled!');
+      } else {
+        document.body.style.setProperty('--glass-opacity', '0.15');
+        showToast('Advanced glass effects disabled');
+      }
+    });
+
+    // Form submission demo
+    document.getElementById('submitFormBtn').addEventListener('click', () => {
+      const name = document.getElementById('inputName').value.trim();
+      const email = document.getElementById('inputEmail').value.trim();
+      if (!name || !email) {
+        showToast('Please fill in Name and Email', true);
+        return;
+      }
+      showToast(`Thanks, ${name}! Form submitted.`);
+      // Here you can do real form submission or other logic
+    });
+
+    // Brightness slider
+    const brightnessRange = document.getElementById('brightnessRange');
+    brightnessRange.addEventListener('input', (e) => {
+      const val = e.target.value;
+      document.body.style.filter = `brightness(${val}%)`;
+    });
+
+    // Notifications panel toggle
+    const toggleNotificationsBtn = document.getElementById('toggleNotificationsBtn');
+    const notificationsPanel = document.getElementById('notificationsPanel');
+
+    toggleNotificationsBtn.addEventListener('click', () => {
+      const isActive = notificationsPanel.classList.toggle('active');
+      if(isActive) {
+        addNotification('Notifications panel opened.');
+      }
+    });
+
+    // Notification system
+    function addNotification(msg) {
+      const notif = document.createElement('div');
+      notif.className = 'notification';
+      notif.textContent = msg;
+      notificationsPanel.appendChild(notif);
+
+      setTimeout(() => {
+        notif.style.opacity = '0';
+        notif.style.transform = 'translateX(50px)';
+      }, 5000);
+      setTimeout(() => {
+        notif.remove();
+      }, 6000);
+    }
+
+    // Toast message
+    const toast = document.getElementById('toast');
+    let toastTimeout;
+    function showToast(msg, isError = false) {
+      toast.textContent = msg;
+      toast.style.background = isError
+        ? 'rgba(255 60 60 / 0.7)'
+        : 'rgba(160 193 255 / 0.7)';
+      toast.classList.add('show');
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toast.classList.remove('show');
+      }, 3500);
+    }
+
+    // Multitasking windows logic
+    const windowsContainer = document.getElementById('windowsContainer');
+
+    // Create some multitasking windows (like iPad apps)
+    function createWindow(title, contentHtml, x = 100, y = 100) {
+      const win = document.createElement('section');
+      win.className = 'window';
+      win.style.left = x + 'px';
+      win.style.top = y + 'px';
+      win.tabIndex = 0;
+      win.setAttribute('role', 'dialog');
+      win.setAttribute('aria-label', title);
+
+      // Header
+      const header = document.createElement('div');
+      header.className = 'window-header';
+      header.innerHTML = `<h3>${title}</h3>`;
+      win.appendChild(header);
+
+      // Controls
+      const controls = document.createElement('div');
+      controls.className = 'window-controls';
+
+      const btnClose = document.createElement('button');
+      btnClose.className = 'window-btn close';
+      btnClose.title = 'Close window';
+      btnClose.setAttribute('aria-label', 'Close window');
+      controls.appendChild(btnClose);
+
+      const btnMinimize = document.createElement('button');
+      btnMinimize.className = 'window-btn minimize';
+      btnMinimize.title = 'Minimize window';
+      btnMinimize.setAttribute('aria-label', 'Minimize window');
+      controls.appendChild(btnMinimize);
+
+      const btnMaximize = document.createElement('button');
+      btnMaximize.className = 'window-btn maximize';
+      btnMaximize.title = 'Maximize window';
+      btnMaximize.setAttribute('aria-label', 'Maximize window');
+      controls.appendChild(btnMaximize);
+
+      header.appendChild(controls);
+
+      // Content
+      const content = document.createElement('div');
+      content.className = 'window-content';
+      content.innerHTML = contentHtml;
+      win.appendChild(content);
+
+      // Add window to container
+      windowsContainer.appendChild(win);
+
+      // Dragging functionality
+      let isDragging = false;
+      let offsetX = 0;
+      let offsetY = 0;
+
+      header.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        offsetX = e.clientX - win.offsetLeft;
+        offsetY = e.clientY - win.offsetTop;
+        win.style.cursor = 'grabbing';
+        win.style.zIndex = 101;
+        e.preventDefault();
+      });
+      window.addEventListener('mouseup', () => {
+        isDragging = false;
+        win.style.cursor = 'grab';
+        win.style.zIndex = 100;
+      });
+      window.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        let x = e.clientX - offsetX;
+        let y = e.clientY - offsetY;
+        // Keep window within viewport
+        const maxX = window.innerWidth - win.offsetWidth;
+        const maxY = window.innerHeight - win.offsetHeight;
+        x = Math.min(Math.max(0, x), maxX);
+        y = Math.min(Math.max(0, y), maxY);
+        win.style.left = x + 'px';
+        win.style.top = y + 'px';
+      });
+
+      // Close button
+      btnClose.addEventListener('click', () => {
+        win.remove();
+        showToast(`Closed window "${title}"`);
+      });
+
+      // Minimize button
+      btnMinimize.addEventListener('click', () => {
+        if (win.style.height !== '40px') {
+          win.dataset.prevHeight = win.style.height || '280px';
+          win.style.height = '40px';
+          content.style.display = 'none';
+          showToast(`Minimized window "${title}"`);
+        } else {
+          win.style.height = win.dataset.prevHeight || '280px';
+          content.style.display = 'block';
+          showToast(`Restored window "${title}"`);
+        }
+      });
+
+      // Maximize button
+      btnMaximize.addEventListener('click', () => {
+        if (!win.dataset.maximized || win.dataset.maximized === 'false') {
+          win.dataset.prevLeft = win.style.left;
+          win.dataset.prevTop = win.style.top;
+          win.dataset.prevWidth = win.style.width;
+          win.dataset.prevHeight = win.style.height;
+
+          win.style.left = '0';
+          win.style.top = '0';
+          win.style.width = '100vw';
+          win.style.height = '100vh';
+          content.style.display = 'block';
+          win.dataset.maximized = 'true';
+          showToast(`Maximized window "${title}"`);
+        } else {
+          win.style.left = win.dataset.prevLeft;
+          win.style.top = win.dataset.prevTop;
+          win.style.width = win.dataset.prevWidth;
+          win.style.height = win.dataset.prevHeight;
+          content.style.display = 'block';
+          win.dataset.maximized = 'false';
+          showToast(`Restored window "${title}"`);
+        }
+      });
+
+      return win;
+    }
+
+    // Create initial multitasking windows
+    createWindow('Mail', `<p>You have 3 new emails</p><button class="btn-glass" onclick="showToast('Mail opened!')">Open Mail</button>`, 400, 100);
+    createWindow('Calendar', `<p>Your next event: Team Meeting at 3 PM</p><button class="btn-glass" onclick="showToast('Calendar opened!')">Open Calendar</button>`, 700, 180);
+    createWindow('Notes', `<textarea rows="10" style="width:100%; border-radius:16px; border:none; padding:16px; font-size:1.1rem; resize:none; background: rgba(255 255 255 / 0.1); color: white;"></textarea>`, 200, 350);
+
+    // Accessibility: trap focus inside windows when focused
+    windowsContainer.addEventListener('keydown', e => {
+      if (e.key === 'Tab') {
+        const focusableElements = windowsContainer.querySelectorAll('button, textarea, input, [tabindex]:not([tabindex="-1"])');
+        if (focusableElements.length === 0) return;
+        const first = focusableElements[0];
+        const last = focusableElements[focusableElements.length -1];
+        if (e.shiftKey) {
+          if(document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+          }
+        } else {
+          if(document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
+      }
+    });
+
+  </script>
+</body>
+</html>
